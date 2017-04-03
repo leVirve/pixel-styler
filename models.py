@@ -1,5 +1,3 @@
-from functools import partial
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -32,6 +30,7 @@ class Generator(nn.Module):
         self.dec6 = decoder_layer(ngf * 4 * 2, ngf * 2)
         self.dec7 = decoder_layer(ngf * 2 * 2, ngf)
         self.dec8 = decoder_layer(ngf * 2, output_nc, batchnorm=False)
+        self.apply(weights_init)
 
     def forward(self, x):
         ''' Encoder '''
@@ -70,7 +69,6 @@ class Discriminator(nn.Module):
         """
         super().__init__()
         std_layer = encoder_layer
-
         self.model = nn.Sequential(
             std_layer(input_nc + output_nc, ndf, activation=False, batchnorm=False),
             std_layer(ndf, ndf * 2),
@@ -79,35 +77,31 @@ class Discriminator(nn.Module):
             std_layer(ndf * 8, 1, stride=1),
             nn.Sigmoid()
         )
+        self.apply(weights_init)
 
     def forward(self, x):
         return self.model(x)
 
 
-def conv(layer, in_channels, out_channels, stride=2):
-    return layer(in_channels, out_channels,
-                 kernel_size=4, stride=stride, padding=1)
-
-
-def build_layer(*compnents):
+def seqence_layer(*compnents):
     return nn.Sequential(*[c for c in compnents if c is not None])
 
 
-def encoder_layer(in_channels, out_channels,
-                  activation=True, batchnorm=True, **kwargs):
-    return build_layer(
+def encoder_layer(in_dim, out_dim, stride=2,
+                  activation=True, batchnorm=True):
+    return seqence_layer(
             nn.LeakyReLU(0.2, True) if activation else None,
-            conv4x4(in_channels, out_channels, **kwargs),
-            nn.BatchNorm2d(out_channels) if batchnorm else None,
+            nn.Conv2d(in_dim, out_dim, 4, stride, 1),
+            nn.BatchNorm2d(out_dim) if batchnorm else None,
         )
 
 
-def decoder_layer(in_channels, out_channels,
-                  activation=True, batchnorm=True, dropout=False, **kwargs):
-    return build_layer(
+def decoder_layer(in_dim, out_dim, stride=2,
+                  activation=True, batchnorm=True, dropout=False):
+    return seqence_layer(
             nn.ReLU(True) if activation else None,
-            conv_transpose4x4(in_channels, out_channels, **kwargs),
-            nn.BatchNorm2d(out_channels) if batchnorm else None,
+            nn.ConvTranspose2d(in_dim, out_dim, 4, stride, 1),
+            nn.BatchNorm2d(out_dim) if batchnorm else None,
             nn.Dropout(0.5) if dropout else None
         )
 
@@ -120,7 +114,3 @@ def weights_init(m):
     elif classname.find('BatchNorm') != -1:
         m.weight.data.normal_(1.0, 0.02)
         m.bias.data.fill_(0)
-
-
-conv4x4 = partial(conv, nn.Conv2d)
-conv_transpose4x4 = partial(conv, nn.ConvTranspose2d)
