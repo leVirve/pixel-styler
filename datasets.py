@@ -26,6 +26,7 @@ class ImageFolderDataset(dset.ImageFolder):
         img = self.loader(path)
         if self.transform is not None:
             img = self.transform(img)
+        img = img * 2 - 1
 
         _, _, w = img.size()
         a, b = img[:, :, :w // 2], img[:, :, w // 2:]
