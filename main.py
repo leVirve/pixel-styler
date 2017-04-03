@@ -49,9 +49,9 @@ print('===> Build loss and optimizers')
 criterion = nn.BCELoss().cuda()
 criterion_l1 = nn.L1Loss().cuda()
 
-d_optimizer = torch.optim.Adam(
-    generator.parameters(), lr=η, betas=(β1, 0.999))
 g_optimizer = torch.optim.Adam(
+    generator.parameters(), lr=η, betas=(β1, 0.999))
+d_optimizer = torch.optim.Adam(
     discriminator.parameters(), lr=η, betas=(β1, 0.999))
 
 print('===> Train model')
