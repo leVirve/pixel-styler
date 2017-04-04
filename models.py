@@ -14,47 +14,84 @@ class Generator(nn.Module):
             ngf: the number of filters
         """
         super().__init__()
-        self.enc1 = encoder_layer(input_nc, ngf, activation=False, batchnorm=False)
-        self.enc2 = encoder_layer(ngf, ngf * 2)
-        self.enc3 = encoder_layer(ngf * 2, ngf * 4)
-        self.enc4 = encoder_layer(ngf * 4, ngf * 8)
-        self.enc5 = encoder_layer(ngf * 8, ngf * 8)
-        self.enc6 = encoder_layer(ngf * 8, ngf * 8)
-        self.enc7 = encoder_layer(ngf * 8, ngf * 8)
-        self.enc8 = encoder_layer(ngf * 8, ngf * 8, batchnorm=False)
-        self.dec1 = decoder_layer(ngf * 8, ngf * 8, dropout=True)
-        self.dec2 = decoder_layer(ngf * 8 * 2, ngf * 8, dropout=True)
-        self.dec3 = decoder_layer(ngf * 8 * 2, ngf * 8, dropout=True)
-        self.dec4 = decoder_layer(ngf * 8 * 2, ngf * 8)
-        self.dec5 = decoder_layer(ngf * 8 * 2, ngf * 4)
-        self.dec6 = decoder_layer(ngf * 4 * 2, ngf * 2)
-        self.dec7 = decoder_layer(ngf * 2 * 2, ngf)
-        self.dec8 = decoder_layer(ngf * 2, output_nc, batchnorm=False)
+
+    def _build_encoder_layers(self, input_nc, ngf):
+        self.encoder = [
+            encoder_layer(input_nc, ngf, activation=False, batchnorm=False),
+            encoder_layer(ngf, ngf * 2),
+            encoder_layer(ngf * 2, ngf * 4),
+            encoder_layer(ngf * 4, ngf * 8),
+            encoder_layer(ngf * 8, ngf * 8),
+            encoder_layer(ngf * 8, ngf * 8),
+            encoder_layer(ngf * 8, ngf * 8),
+            encoder_layer(ngf * 8, ngf * 8, batchnorm=False)]
+        for i, layer in enumerate(self.encoder, 1):
+            setattr(self, 'enc%d' % i, layer)
+
+    def _build_decoder_layers(self, output_nc, ngf):
+        self.decoder = [
+            decoder_layer(ngf * 8, ngf * 8, dropout=True),
+            decoder_layer(ngf * 8, ngf * 8, dropout=True),
+            decoder_layer(ngf * 8, ngf * 8, dropout=True),
+            decoder_layer(ngf * 8, ngf * 8),
+            decoder_layer(ngf * 8, ngf * 4),
+            decoder_layer(ngf * 4, ngf * 2),
+            decoder_layer(ngf * 2, ngf),
+            decoder_layer(ngf, output_nc, batchnorm=False)]
+        for i, layer in enumerate(self.decoder, 1):
+            setattr(self, 'dec%d' % i, layer)
+
+    def _build_unet_decoder_layers(self, output_nc, ngf):
+        self.decoder = [
+            decoder_layer(ngf * 8, ngf * 8, dropout=True),
+            decoder_layer(ngf * 8 * 2, ngf * 8, dropout=True),
+            decoder_layer(ngf * 8 * 2, ngf * 8, dropout=True),
+            decoder_layer(ngf * 8 * 2, ngf * 8),
+            decoder_layer(ngf * 8 * 2, ngf * 4),
+            decoder_layer(ngf * 4 * 2, ngf * 2),
+            decoder_layer(ngf * 2 * 2, ngf),
+            decoder_layer(ngf * 2, output_nc, batchnorm=False)]
+        for i, layer in enumerate(self.decoder, 1):
+            setattr(self, 'dec%d' % i, layer)
+
+
+class GeneratorUNet(Generator):
+
+    def __init__(self, input_nc, output_nc, ngf):
+        super().__init__(input_nc, output_nc, ngf)
+        self._build_encoder_layers(input_nc, ngf)
+        self._build_unet_decoder_layers(output_nc, ngf)
         self.apply(weights_init)
 
     def forward(self, x):
-        ''' Encoder '''
-        e1 = self.enc1(x)
-        e2 = self.enc2(e1)
-        e3 = self.enc3(e2)
-        e4 = self.enc4(e3)
-        e5 = self.enc5(e4)
-        e6 = self.enc6(e5)
-        e7 = self.enc7(e6)
-        e8 = self.enc8(e7)
+        ''' Encode '''
+        enc_x = []
+        for i, enc in enumerate(self.encoder):
+            enc_x.append(x)
+            x = enc(x)
+        ''' Decode '''
+        for i, dec in enumerate(self.decoder[:-1]):
+            x = torch.cat((dec(x), enc_x[-i - 1]), 1)
+        x = self.decoder[-1](x)
+        return F.tanh(x)
 
-        ''' Decoder '''
-        d1 = torch.cat((self.dec1(e8), e7), 1)
-        d2 = torch.cat((self.dec2(d1), e6), 1)
-        d3 = torch.cat((self.dec3(d2), e5), 1)
-        d4 = torch.cat((self.dec4(d3), e4), 1)
-        d5 = torch.cat((self.dec5(d4), e3), 1)
-        d6 = torch.cat((self.dec6(d5), e2), 1)
-        d7 = torch.cat((self.dec7(d6), e1), 1)
-        d8 = self.dec8(d7)
 
-        output = F.tanh(d8)
-        return output
+class GeneratorEncoderDecode(Generator):
+
+    def __init__(self, input_nc, output_nc, ngf):
+        super().__init__(input_nc, output_nc, ngf)
+        self._build_encoder_layers(input_nc, ngf)
+        self._build_decoder_layers(output_nc, ngf)
+        self.apply(weights_init)
+
+    def forward(self, x):
+        ''' Encode '''
+        for enc in self.encoder:
+            x = enc(x)
+        ''' Decode '''
+        for dec in self.decoders:
+            x = dec(x)
+        return F.tanh(x)
 
 
 class Discriminator(nn.Module):

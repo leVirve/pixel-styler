@@ -5,7 +5,7 @@ import torchvision
 import torch.nn as nn
 from torch.autograd import Variable
 
-from models import Discriminator, Generator
+from models import Discriminator, GeneratorUNet
 
 real_label, fake_label = 1, 0
 
@@ -15,7 +15,7 @@ class Pix2Pix():
     def __init__(self, opt, dataset):
         self.opt = opt
         self.dataset = dataset
-        self.generator = Generator(opt.input_nc, opt.output_nc, opt.ngf)
+        self.generator = GeneratorUNet(opt.input_nc, opt.output_nc, opt.ngf)
         self.discriminator = Discriminator(opt.input_nc, opt.output_nc, opt.ndf)
 
     def setup(self):
