@@ -21,10 +21,10 @@ class Pix2Pix():
     def setup(self):
         self._build_tensors()
         self._define_criterions()
-        if self.opt.cuda:
-            self.cuda()
         self._build_placeholders()
         self._define_optimizers()
+        if self.opt.cuda:
+            self.cuda()
 
     def train(self, data_loader):
         self.setup()
@@ -47,6 +47,19 @@ class Pix2Pix():
                     stage_logging()
             torchvision.utils.save_image(
                 fake_b.data, './output/fake_samples_epoch%d.png' % (epoch + 1))
+
+    def test(self, data_loader):
+        import os
+        generator = torch.load('./generator.pth')
+        generator = generator.cuda() if self.opt.cuda else generator
+
+        for i, (img_a, img_b) in enumerate(data_loader):
+            input_img = Variable(img_b).cuda()
+            out = generator(input_img)
+
+            os.makedirs('result/facades/', exist_ok=True)
+            torchvision.utils.save_image(
+                out.data[0], './result/facades/%d.png' % i, nrow=1)
 
     def update_discriminator(self, real_ab, fake_ab):
         ''' discriminator
@@ -148,15 +161,15 @@ class Pix2Pix():
         print(self.discriminator)
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--imageSize', type=int, default=256, help='the height / width of the input image to network')
+parser = argparse.ArgumentParser(description='pix2pix in PyTorch')
+parser.add_argument('--phase', required=True, help='Pix2Pix in training / testing phase')
+parser.add_argument('--imageSize', type=int, default=256, help='the height / width of the input image')
 parser.add_argument('--input_nc', type=int, default=3, help='input image channels')
 parser.add_argument('--output_nc', type=int, default=3, help='output image channels')
-parser.add_argument('--nz', type=int, default=100, help='size of the latent z vector')
 parser.add_argument('--ngf', type=int, default=64, help='generator filters in first conv layer')
 parser.add_argument('--ndf', type=int, default=64, help='discriminator filters in first conv layer')
-parser.add_argument('--epochs', type=int, default=20, help='number of epochs to train for')
-parser.add_argument('--batchSize', type=int, default=16, help='input batch size')
+parser.add_argument('--epochs', type=int, default=20, help='training epochs')
+parser.add_argument('--batchSize', type=int, default=16, help='batch size of data')
 parser.add_argument('--lr', type=float, default=0.0002, help='learning rate, default=0.0002')
 parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for adam. default=0.5')
 parser.add_argument('--lamb', type=int, default=100, help='weight on L1 term in objective')
