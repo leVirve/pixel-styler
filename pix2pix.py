@@ -76,7 +76,7 @@ class Pix2Pix():
         d_x = output.data.mean()
 
         # Train with fake
-        output = self.discriminator(fake_ab)  # is fake_b really detach ?
+        output = self.discriminator(fake_ab)
         label.data.resize_(output.size()).fill_(fake_label)
         d_fake_loss = self.criterion(output, label)
         d_fake_loss.backward()
@@ -108,9 +108,9 @@ class Pix2Pix():
         self.real_a.data.resize_(img_a.size()).copy_(img_a)
         self.real_b.data.resize_(img_b.size()).copy_(img_b)
 
-        fake_b = self.generator(self.real_a)
+        fake_b = self.generator(self.real_a).detach()
         real_ab = torch.cat((self.real_a, self.real_b), 1)
-        fake_ab = torch.cat((self.real_a, fake_b.detach()), 1)
+        fake_ab = torch.cat((self.real_a, fake_b), 1)
         return fake_b, real_ab, fake_ab
 
     def save_model(self):
