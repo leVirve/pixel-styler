@@ -47,10 +47,6 @@ class Pix2Pix():
                     stage_logging()
             torchvision.utils.save_image(
                 fake_b.data, './output/fake_samples_epoch%d.png' % (epoch + 1))
-            torchvision.utils.save_image(
-                self.real_a.data, './output/real_a_samples_epoch%d.png' % (epoch + 1))
-            torchvision.utils.save_image(
-                self.real_b.data, './output/real_b_samples_epoch%d.png' % (epoch + 1))
 
     def test(self, data_loader):
         import os
