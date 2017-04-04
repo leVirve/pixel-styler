@@ -43,10 +43,14 @@ class Pix2Pix():
                 fake_b, real_ab, fake_ab = self.create_example(img_b, img_a)
                 d_f1, d_loss = self.update_discriminator(real_ab, fake_ab)
                 d_f2, g_loss = self.update_generator(fake_b, fake_ab)
-                if (i + 1) % 1 == 0:
+                if (i + 1) % 3 == 0:
                     stage_logging()
             torchvision.utils.save_image(
                 fake_b.data, './output/fake_samples_epoch%d.png' % (epoch + 1))
+            torchvision.utils.save_image(
+                self.real_a.data, './output/real_a_samples_epoch%d.png' % (epoch + 1))
+            torchvision.utils.save_image(
+                self.real_b.data, './output/real_b_samples_epoch%d.png' % (epoch + 1))
 
     def test(self, data_loader):
         import os
