@@ -4,12 +4,11 @@ import torchvision.datasets as dset
 
 
 class ImageFolderDataset(dset.ImageFolder):
-    """Custom Dataset compatible with torch.utils.data.DataLoader."""
+    """ Custom Dataset compatible with torch.utils.data.DataLoader. """
 
     def __init__(self, root, transform=None,
                  loader=dset.folder.default_loader):
-        """Set the path for images, captions and vocabulary wrapper.
-
+        """
         Args:
             root: image directory.
             transform: image transformer
@@ -20,7 +19,7 @@ class ImageFolderDataset(dset.ImageFolder):
         self.loader = loader
 
     def __getitem__(self, index):
-        """Returns one image pair."""
+        """ Returns an image pair. """
         path = self.imgs[index]
 
         img = self.loader(path)
