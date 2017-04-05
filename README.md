@@ -2,9 +2,9 @@
 
 A PyTorch implementation of "Image-to-Image Translation with Conditional Adversarial Nets", known as [`pix2pix`](https://phillipi.github.io/pix2pix/), for learning a mapping from input images to output images.
 
-An exmple batch of generated fake results from trained model at epoch#200.
+An exmple batch of intermediate generated fake results from model at epoch#500 in dataset `facades` (labels -> facades).
 
-![](docs/fake_samples_epoch200.png)
+![](docs/fake_samples_epoch500.png)
 
 ## Prerequisites
 
