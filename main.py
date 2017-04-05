@@ -2,37 +2,40 @@ import torch
 import torch.backends.cudnn as cudnn
 import torchvision.transforms as transforms
 
-import datasets as dset
-
 import pix2pix
+from pix2pix.torch import datasets
 
 cudnn.benchmark = True
 
 
 def main():
-    parser = pix2pix.parser
-    opt = parser.parse_args()
+    opt = pix2pix.parser.parse_args()
 
-    tf = transforms.Compose([
+    transform = transforms.Compose([
         transforms.ToTensor(),
     ])
 
     print('===> Load datasets')
-    train_dataset = dset.ImageFolderDataset(root='./datasets/facades/train',
-                                            transform=tf)
-    train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
-                                               batch_size=opt.batchSize,
-                                               num_workers=opt.workers,
-                                               pin_memory=True,
-                                               shuffle=True)
-    test_dataset = dset.ImageFolderDataset(root='./datasets/facades/test',
-                                           transform=tf)
-    test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
-                                              batch_size=1,
-                                              num_workers=opt.workers,
-                                              pin_memory=True)
+    train_dataset = datasets.ImageFolderDataset(
+        root='./datasets/facades/train',
+        transform=transform)
+    train_loader = torch.utils.data.DataLoader(
+        dataset=train_dataset,
+        batch_size=opt.batchSize,
+        num_workers=opt.workers,
+        pin_memory=True,
+        shuffle=True)
+    test_dataset = datasets.ImageFolderDataset(
+        root='./datasets/facades/test',
+        transform=transform)
+    test_loader = torch.utils.data.DataLoader(
+        dataset=test_dataset,
+        batch_size=1,
+        num_workers=opt.workers,
+        pin_memory=True)
+
     print('===> Build model')
-    pix = pix2pix.Pix2Pix(opt, train_dataset)
+    pix = pix2pix.torch.Pix2Pix(opt, train_dataset)
     pix.detail()
 
     if opt.phase == 'train':
