@@ -1,9 +1,13 @@
+import os
+import time
+
 import torch
 import torchvision
 import torch.nn as nn
 from torch.autograd import Variable
 
 from pix2pix.torch.models import Discriminator, Generator
+from pix2pix import utils
 
 real_label, fake_label = 1, 0
 
@@ -25,40 +29,54 @@ class Pix2Pix():
             self.cuda()
 
     def train(self, data_loader):
-        self.setup()
-        num_batches = len(self.dataset) // self.opt.batchSize
-        num_epochs = self.opt.epochs
 
-        def stage_logging():
-            print('Epoch [{:3d}/{}]({:02d}/{:02d}) =>'
+        def batch_logging():
+            print('Epoch#{}/{} ({:02d}/{:02d}) =>'
                   ' Loss_D: {:.4f} Loss_G: {:.4f}'
                   ' D(x): {:.4f} D(G(z)): {:.4f}/{:.4f}'.format(
-                        epoch + 1, num_epochs, i + 1, num_batches,
+                        epoch + 1, opt.epochs, batch, len(data_loader),
                         d_loss.data[0], g_loss.data[0], *d_f1, *d_f2))
 
-        for epoch in range(num_epochs):
-            for i, (img_a, img_b) in enumerate(data_loader):
+        def epoch_logging():
+            torchvision.utils.save_image(
+                fake_b.data, os.path.join(
+                    opt.log_dir, 'fake_samples_epoch%d.png' % (epoch + 1)))
+            self.save_model('epoch%d' % (epoch + 1))
+
+        opt = self.opt
+        self.setup()
+
+        for epoch in range(opt.epochs):
+            s = time.time()
+            for batch, (img_a, img_b) in enumerate(data_loader, start=1):
                 fake_b, real_ab, fake_ab = self.create_example(img_b, img_a)
                 d_f1, d_loss = self.update_discriminator(real_ab, fake_ab)
                 d_f2, g_loss = self.update_generator(fake_b, fake_ab)
-                if (i + 1) % 3 == 0:
-                    stage_logging()
-            torchvision.utils.save_image(
-                fake_b.data, './output/fake_samples_epoch%d.png' % (epoch + 1))
-            self.save_model('epoch%d' % epoch)
+
+                if batch % opt.log_freq == 0:
+                    batch_logging()
+            print('Epoch#{}: {:.4f} sec'.format(epoch + 1, time.time() - s))
+
+            if epoch % opt.save_freq == 0:
+                epoch_logging()
 
     def test(self, data_loader):
-        import os
-        generator = torch.load('./generator.pth')
-        generator = generator.cuda() if self.opt.cuda else generator
+        opt = self.opt
 
-        for i, (img_a, img_b) in enumerate(data_loader):
+        assert opt.netG
+        generator = torch.load(opt.netG)
+        generator = generator.cuda() if opt.cuda else generator
+
+        folder = utils.mkdir(opt.dataset, parent=opt.output_dir)
+        for (img_a, img_b), filepath in zip(data_loader,
+                                            data_loader.dataset.imgs):
             input_img = Variable(img_b).cuda()
             out = generator(input_img)
+            print('Processing on {}'.format(filepath))
 
-            os.makedirs('result/facades/', exist_ok=True)
+            filename = os.path.basename(filepath)
             torchvision.utils.save_image(
-                out.data[0], './result/facades/%d.png' % i, nrow=1)
+                out.data[0], os.path.join(folder, filename), nrow=1)
 
     def update_discriminator(self, real_ab, fake_ab):
         ''' discriminator
@@ -115,8 +133,11 @@ class Pix2Pix():
     def save_model(self, suffix=None):
         # torch.save(self.generator.state_dict(), './generator.pkl')
         # torch.save(self.discriminator.state_dict(), './discriminator.pkl')
-        torch.save(self.generator, './generator_%s.pth' % suffix)
-        torch.save(self.discriminator, './discriminator_%s.pth' % suffix)
+        folder = self.opt.log_dir
+        torch.save(self.generator,
+                   os.path.join(folder, 'generator_%s.pth' % suffix))
+        torch.save(self.discriminator,
+                   os.path.join(folder, 'discriminator_%s.pth' % suffix))
 
     def _build_tensors(self):
         opt = self.opt
