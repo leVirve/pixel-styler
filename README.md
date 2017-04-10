@@ -23,14 +23,26 @@ An exmple batch of intermediate generated fake results from model at epoch#500 i
 python main.py --phase [train | test]
 
 # Help
-usage: main.py [-h] --phase PHASE [--imageSize IMAGESIZE]
-               [--input_nc INPUT_NC] [--output_nc OUTPUT_NC] [--ngf NGF]
-               [--ndf NDF] [--epochs EPOCHS] [--batchSize BATCHSIZE] [--lr LR]
-               [--beta1 BETA1] [--lamb LAMB] [--netG NETG] [--netD NETD]
-               [--out OUT] [--workers WORKERS] [--ngpu NGPU] [--cuda]
-
+usage: main.py [-h] --phase PHASE [--epochs EPOCHS] [--batchSize BATCHSIZE]
+               [--imageSize IMAGESIZE] [--input_nc INPUT_NC]
+               [--output_nc OUTPUT_NC] [--ngf NGF] [--ndf NDF] [--lr LR]
+               [--beta1 BETA1] [--lamb LAMB] [--save_freq SAVE_FREQ]
+               [--log_freq LOG_FREQ] [--dataset DATASET] [--log_dir LOG_DIR]
+               [--output_dir OUTPUT_DIR] [--netG NETG] [--netD NETD]
+               [--workers WORKERS] [--ngpu NGPU] [--cuda]
 ```
 
+### Train
+
+```bash
+python main.py --phase train --cuda --epochs 200 --batchSize 1 --log_freq 10
+```
+
+### Test
+
+```bash
+python main.py --phase test --cuda --netG logs/generator_epoch200.pth
+```
 
 ## Datasets
 
