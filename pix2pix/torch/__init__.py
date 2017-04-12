@@ -19,6 +19,8 @@ class Pix2Pix():
         self.dataset = dataset
         self.generator = Generator(opt.input_nc, opt.output_nc, opt.ngf)
         self.discriminator = Discriminator(opt.input_nc, opt.output_nc, opt.ndf)
+        utils.mkdir(opt.log_dir)
+        utils.mkdir(opt.output_dir)
 
     def setup(self):
         self._build_tensors()

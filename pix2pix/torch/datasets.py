@@ -30,21 +30,34 @@ class ImageFolderDataset(dset.ImageFolder):
             - Normalization on images from [0, 1] -> [-1, 1]
             - Random croping to desired size
         '''
-        img = img.resize([286 * 2, 286])
-
+        img = resize(img, [286 * 2, 286])
         if self.transform is not None:
             img = self.transform(img)
+        img = normalize(img)
 
-        img = img * 2 - 1
-
-        _, _, dim = img.size()
-        a, b = img[:, :, :dim // 2], img[:, :, dim // 2:]
-
-        w = h = 286
-        tw = th = 256
-        x1 = random.randint(0, w - tw)
-        y1 = random.randint(0, h - th)
-        a = a[:, x1:x1 + tw, y1:y1 + th]
-        b = b[:, x1:x1 + tw, y1:y1 + th]
+        a, b = split_ab(img)
+        a = random_crop(a, (256, 256))
+        b = random_crop(b, (256, 256))
 
         return a, b
+
+
+def resize(img, shape):
+    return img.resize(shape)
+
+
+def normalize(img):
+    return img * 2 - 1
+
+
+def split_ab(img):
+    _, _, w = img.size()
+    return img[:, :, :w // 2], img[:, :, w // 2:]
+
+
+def random_crop(img, shape):
+    _, h, w = img.size()
+    th, tw = shape
+    x1 = random.randint(0, w - tw)
+    y1 = random.randint(0, h - th)
+    return img[:, x1:x1 + tw, y1:y1 + th]
