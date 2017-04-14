@@ -19,8 +19,12 @@ parser.add_argument('--save_freq', type=int, default=5, help='how often to savin
 parser.add_argument('--log_freq', type=int, default=50, help='how often of logging about batch')
 
 parser.add_argument('--dataset', default='facades', help="dataset used in pix2pix")
+parser.add_argument('--direction', default='AtoB', help="direction of image translation")
+parser.add_argument('--folderA', default='', help="folder of images used as image A")
+parser.add_argument('--folderB', default='', help="folder of images used as image B")
+
 parser.add_argument('--log_dir', default='./logs', help="path output model and logging stuffs")
-parser.add_argument('--output_dir', default='./results', help="path output stuffs")
+parser.add_argument('--result_dir', default='./results', help="path output stuffs")
 parser.add_argument('--netG', default='', help="path to netG (to continue training)")
 parser.add_argument('--netD', default='', help="path to netD (to continue training)")
 

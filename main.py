@@ -17,18 +17,26 @@ def main():
     ])
 
     print('===> Load datasets')
-    train_dataset = datasets.ImageFolderDataset(
-        root='./datasets/facades/train',
-        transform=transform)
+
+    if opt.datasetA and opt.datasetB:
+        train_dataset = datasets.ImageMixFolderDatasets(
+                dataset_a=opt.datasetA, dataset_b=opt.datasetB,
+                transform=transform)
+        test_dataset = train_dataset
+    else:
+        train_dataset = datasets.ImageFolderDataset(
+            root='./datasets/%s/train' % opt.dataset,
+            transform=transform)
+        test_dataset = datasets.ImageFolderDataset(
+            root='./datasets/%s/test' % opt.dataset,
+            transform=transform)
+
     train_loader = torch.utils.data.DataLoader(
         dataset=train_dataset,
         batch_size=opt.batchSize,
         num_workers=opt.workers,
         pin_memory=True,
         shuffle=True)
-    test_dataset = datasets.ImageFolderDataset(
-        root='./datasets/facades/test',
-        transform=transform)
     test_loader = torch.utils.data.DataLoader(
         dataset=test_dataset,
         batch_size=1,

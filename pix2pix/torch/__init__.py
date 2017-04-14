@@ -6,7 +6,7 @@ import torchvision
 import torch.nn as nn
 from torch.autograd import Variable
 
-from pix2pix.torch.models import Discriminator, Generator
+from pix2pix.torch.models import Discriminator, GeneratorUNet
 from pix2pix import utils
 
 real_label, fake_label = 1, 0
@@ -17,10 +17,11 @@ class Pix2Pix():
     def __init__(self, opt, dataset):
         self.opt = opt
         self.dataset = dataset
-        self.generator = Generator(opt.input_nc, opt.output_nc, opt.ngf)
+        self.AtoB = self.opt.direction == 'AtoB'
+        self.generator = GeneratorUNet(opt.input_nc, opt.output_nc, opt.ngf)
         self.discriminator = Discriminator(opt.input_nc, opt.output_nc, opt.ndf)
         utils.mkdir(opt.log_dir)
-        utils.mkdir(opt.output_dir)
+        utils.mkdir(opt.result_dir)
 
     def setup(self):
         self._build_tensors()
@@ -51,7 +52,7 @@ class Pix2Pix():
         for epoch in range(opt.epochs):
             s = time.time()
             for batch, (img_a, img_b) in enumerate(data_loader, start=1):
-                fake_b, real_ab, fake_ab = self.create_example(img_b, img_a)
+                fake_b, real_ab, fake_ab = self.create_example(img_a, img_b)
                 d_f1, d_loss = self.update_discriminator(real_ab, fake_ab)
                 d_f2, g_loss = self.update_generator(fake_b, fake_ab)
 
@@ -69,7 +70,7 @@ class Pix2Pix():
         generator = torch.load(opt.netG)
         generator = generator.cuda() if opt.cuda else generator
 
-        folder = utils.mkdir(opt.dataset, parent=opt.output_dir)
+        folder = utils.mkdir(opt.dataset, parent=opt.result_dir)
         for (img_a, img_b), filepath in zip(data_loader,
                                             data_loader.dataset.imgs):
             input_img = Variable(img_b).cuda()
@@ -124,8 +125,13 @@ class Pix2Pix():
         return (d_g_z2,), g_loss
 
     def create_example(self, img_a, img_b):
-        self.real_a.data.resize_(img_a.size()).copy_(img_a)
-        self.real_b.data.resize_(img_b.size()).copy_(img_b)
+        if self.AtoB:
+            a, b = img_a, img_b
+        else:
+            b, a = img_a, img_b
+
+        self.real_a.data.resize_(img_a.size()).copy_(a)
+        self.real_b.data.resize_(img_b.size()).copy_(b)
 
         fake_b = self.generator(self.real_a)
         real_ab = torch.cat((self.real_a, self.real_b), 1)

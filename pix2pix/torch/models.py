@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class Generator(nn.Module):
+class GeneratorUNet(nn.Module):
 
     def __init__(self, input_nc, output_nc, ngf):
         """ Generator model
