@@ -22,21 +22,32 @@ An exmple batch of intermediate generated fake results from model at epoch#500 i
 ```bash
 python main.py --phase [train | test]
 
+# Use `python main.py --help` for help
 # Help
 usage: main.py [-h] --phase PHASE [--epochs EPOCHS] [--batchSize BATCHSIZE]
-               [--imageSize IMAGESIZE] [--input_nc INPUT_NC]
-               [--output_nc OUTPUT_NC] [--ngf NGF] [--ndf NDF] [--lr LR]
-               [--beta1 BETA1] [--lamb LAMB] [--save_freq SAVE_FREQ]
-               [--log_freq LOG_FREQ] [--dataset DATASET] [--log_dir LOG_DIR]
-               [--output_dir OUTPUT_DIR] [--netG NETG] [--netD NETD]
-               [--workers WORKERS] [--ngpu NGPU] [--cuda]
+               [--imageSize IMAGESIZE]
+               [--input_nc INPUT_NC] [--output_nc OUTPUT_NC]
+               [--ngf NGF] [--ndf NDF]
+               [--lr LR] [--beta1 BETA1] [--lamb LAMB]
+               [--save_freq SAVE_FREQ] [--log_freq LOG_FREQ]
+               [--direction DIRECTION] [--dataset DATASET] [--folderA FOLDERA] [--folderB FOLDERB]
+               [--log_dir LOG_DIR] [--result_dir RESULT_DIR]
+               [--netG NETG] [--netD NETD] [--workers WORKERS] [--ngpu NGPU] [--cuda]
 ```
 
 ### Train
 
-```bash
-python main.py --phase train --cuda --epochs 200 --batchSize 1 --log_freq 10
-```
+- Train with different datasets from `phillipi`, just change the `--datasets`
+
+    ```bash
+    python main.py --phase train --cuda --epochs 200 --batchSize 1 --log_freq 10 --datasets facades
+    ```
+
+- Train with self-defined structure of datasets, two folders for each side, use the `--datasetA` and `--datasetB`
+
+    ```bash
+    python main.py --phase train --cuda --epochs 200 --datasetA datasets/traj0/trainA --datasetB datasets/traj0/trainB
+    ```
 
 ### Test
 
