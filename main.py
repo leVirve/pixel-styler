@@ -18,9 +18,9 @@ def main():
 
     print('===> Load datasets')
 
-    if opt.datasetA and opt.datasetB:
+    if opt.folderA and opt.folderB:
         train_dataset = datasets.ImageMixFolderDatasets(
-                dataset_a=opt.datasetA, dataset_b=opt.datasetB,
+                dataset_a=opt.folderA, dataset_b=opt.folderB,
                 transform=transform)
         test_dataset = train_dataset
     else:
