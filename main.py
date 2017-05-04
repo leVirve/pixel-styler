@@ -1,6 +1,5 @@
 import torch
 import torch.backends.cudnn as cudnn
-import torchvision.transforms as transforms
 
 import pix2pix
 from pix2pix.torch import datasets
@@ -11,24 +10,17 @@ cudnn.benchmark = True
 def main():
     opt = pix2pix.parser.parse_args()
 
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-    ])
-
     print('===> Load datasets')
 
     if opt.folderA and opt.folderB:
         train_dataset = datasets.ImageMixFolderDatasets(
-                dataset_a=opt.folderA, dataset_b=opt.folderB,
-                transform=transform)
+                dataset_a=opt.folderA, dataset_b=opt.folderB)
         test_dataset = train_dataset
     else:
         train_dataset = datasets.ImageFolderDataset(
-            root='./datasets/%s/train' % opt.dataset,
-            transform=transform)
+            root='./datasets/%s/train' % opt.dataset)
         test_dataset = datasets.ImageFolderDataset(
-            root='./datasets/%s/test' % opt.dataset,
-            transform=transform)
+            root='./datasets/%s/test' % opt.dataset)
 
     train_loader = torch.utils.data.DataLoader(
         dataset=train_dataset,
