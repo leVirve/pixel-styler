@@ -43,10 +43,10 @@ usage: main.py [-h] --phase PHASE [--epochs EPOCHS] [--batchSize BATCHSIZE]
     python main.py --phase train --cuda --epochs 200 --batchSize 1 --log_freq 10 --datasets facades
     ```
 
-- Train with self-defined structure of datasets, two folders for each side, use the `--datasetA` and `--datasetB`
+- Train with self-defined structure of datasets, two folders for each side, use the `--folderA` and `--folderB`
 
     ```bash
-    python main.py --phase train --cuda --epochs 200 --datasetA datasets/traj0/trainA --datasetB datasets/traj0/trainB
+    python main.py --phase train --cuda --folderA folderA/traj0/trainA --folderB datasets/traj0/trainB
     ```
 
 ### Test
