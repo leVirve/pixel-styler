@@ -12,7 +12,6 @@ def main():
     opt = pix2pix.parser.parse_args()
 
     transform = transforms.Compose([
-        transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
     ])
 
