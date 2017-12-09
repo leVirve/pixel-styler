@@ -1,3 +1,6 @@
+.vscode/
+.idea/
+
 debug*
 datasets/
 checkpoints/

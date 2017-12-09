@@ -1,17 +1,16 @@
-import torch.utils.data
-from data.base_data_loader import BaseDataLoader
+import torch
 
 
-def CreateDataset(opt):
+def creat_dataset(opt):
     dataset = None
     if opt.dataset_mode == 'aligned':
-        from data.aligned_dataset import AlignedDataset
+        from data.base_dataset import AlignedDataset
         dataset = AlignedDataset()
     elif opt.dataset_mode == 'unaligned':
-        from data.unaligned_dataset import UnalignedDataset
+        from data.base_dataset import UnalignedDataset
         dataset = UnalignedDataset()
     elif opt.dataset_mode == 'single':
-        from data.single_dataset import SingleDataset
+        from data.base_dataset import SingleDataset
         dataset = SingleDataset()
     else:
         raise ValueError("Dataset [%s] not recognized." % opt.dataset_mode)
@@ -21,13 +20,17 @@ def CreateDataset(opt):
     return dataset
 
 
-class CustomDatasetDataLoader(BaseDataLoader):
+class CustomDatasetDataLoader():
+
+    def __init__(self, opt):
+        print(self.name())
+        self.initialize(opt)
+
     def name(self):
         return 'CustomDatasetDataLoader'
 
     def initialize(self, opt):
-        BaseDataLoader.initialize(self, opt)
-        self.dataset = CreateDataset(opt)
+        self.dataset = creat_dataset(opt)
         self.dataloader = torch.utils.data.DataLoader(
             self.dataset,
             batch_size=opt.batchSize,
