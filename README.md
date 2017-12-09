@@ -1,6 +1,6 @@
 # Refactored CycleGAN / pix2pix
 
-<img src='imgs/horse2zebra.gif' width=384><br>
+<img src='demo/imgs/horse2zebra.gif' width=384><br>
 
 This is our ongoing PyTorch implementation for both unpaired and paired image-to-image translation.
 
@@ -18,7 +18,7 @@ Check out the original [CycleGAN Torch](https://github.com/junyanz/CycleGAN) and
 #### [[EdgesCats Demo]](https://affinelayer.com/pixsrv/)  [[pix2pix-tensorflow]](https://github.com/affinelayer/pix2pix-tensorflow)
 Written by [Christopher Hesse](https://twitter.com/christophrhesse)
 
-<img src='imgs/edges2cats.jpg' width="600px"/>
+<img src='demo/imgs/edges2cats.jpg' width="600px"/>
 
 If you use this code for your research, please cite:
 
@@ -134,10 +134,10 @@ Note: We currently don't have pretrained models using PyTorch. This is in part b
 
 ### Apply a pre-trained model (pix2pix)
 
-Download the pre-trained models using `./pretrained_models/download_pix2pix_model.sh`. For example, if you would like to download label2photo model on the Facades dataset,
+Download the pre-trained models using `./demo/pretrained_models/download_pix2pix_model.sh`. For example, if you would like to download label2photo model on the Facades dataset,
 
 ```bash
-bash pretrained_models/download_pix2pix_model.sh facades_label2photo
+bash demo/pretrained_models/download_pix2pix_model.sh facades_label2photo
 ```
 
 Then generate the results using
@@ -146,7 +146,7 @@ python test.py --dataroot ./datasets/facades/ --which_direction BtoA --model pix
 ```
 Note that we specified `--which_direction BtoA` to accomodate the fact that the Facades dataset's A to B direction is photos to labels.
 
-Also, the models that are currently available to download can be found by reading the output of `bash pretrained_models/download_pix2pix_model.sh`
+Also, the models that are currently available to download can be found by reading the output of `bash demo/pretrained_models/download_pix2pix_model.sh`
 
 ## Training/test Details
 - Flags: see `options/train_options.py` and `options/base_options.py` for all the training flags; see `options/test_options.py` and `options/base_options.py` for all the test flags.
