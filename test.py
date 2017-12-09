@@ -1,8 +1,8 @@
 import os
 
-from data.loader import CustomDatasetDataLoader
+from data.loader import CustomDataLoader
 from training import create_trainer
-from options.test_options import TestOptions
+from options import TestOptions
 from util import html
 from util.visualizer import Visualizer
 
@@ -12,15 +12,14 @@ opt.batchSize = 1  # test code only supports batchSize = 1
 opt.serial_batches = True  # no shuffle
 opt.no_flip = True  # no flip
 
-data_loader = CustomDatasetDataLoader(opt)
-dataset = data_loader.load_data()
+dataloader = CustomDataLoader(opt)
 model = create_trainer(opt)
 visualizer = Visualizer(opt)
 # create website
 web_dir = os.path.join(opt.results_dir, opt.name, '%s_%s' % (opt.phase, opt.which_epoch))
 webpage = html.HTML(web_dir, 'Experiment = %s, Phase = %s, Epoch = %s' % (opt.name, opt.phase, opt.which_epoch))
 # test
-for i, data in enumerate(dataset):
+for i, data in enumerate(dataloader):
     if i >= opt.how_many:
         break
     model.set_input(data)

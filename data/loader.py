@@ -1,7 +1,7 @@
 import torch
 
 
-def creat_dataset(opt):
+def create_dataset(opt):
     dataset = None
     if opt.dataset_mode == 'aligned':
         from data.base_dataset import AlignedDataset
@@ -20,28 +20,19 @@ def creat_dataset(opt):
     return dataset
 
 
-class CustomDatasetDataLoader():
+class CustomDataLoader():
 
     def __init__(self, opt):
-        print(self.name())
-        self.initialize(opt)
-
-    def name(self):
-        return 'CustomDatasetDataLoader'
-
-    def initialize(self, opt):
-        self.dataset = creat_dataset(opt)
+        self.opt = opt
+        self.dataset = create_dataset(opt)
         self.dataloader = torch.utils.data.DataLoader(
             self.dataset,
             batch_size=opt.batchSize,
             shuffle=not opt.serial_batches,
             num_workers=int(opt.nThreads))
 
-    def load_data(self):
-        return self
-
     def __len__(self):
-        return min(len(self.dataset), self.opt.max_dataset_size)
+        return min(len(self.dataset), self.opt.max_dataset_size) // self.opt.batchSize
 
     def __iter__(self):
         for i, data in enumerate(self.dataloader):

@@ -1,26 +1,21 @@
-import numpy as np
 import torch
-import os
-from collections import OrderedDict
 from torch.autograd import Variable
-import util.util as util
+
+from training.base_trainer import BaseTrainer
+from training import networks
 from util.image_pool import ImagePool
-from .base_trainer import BaseTrainer
-from . import networks
 
 
-class Pix2PixTrainer(BaseTrainer):
+class Pix2pixTrainer(BaseTrainer):
+
     def name(self):
-        return 'Pix2PixModel'
+        return 'Pix2pixTrainer'
 
     def initialize(self, opt):
         BaseTrainer.initialize(self, opt)
         self.isTrain = opt.isTrain
-        # define tensors
-        self.input_A = self.Tensor(opt.batchSize, opt.input_nc,
-                                   opt.fineSize, opt.fineSize)
-        self.input_B = self.Tensor(opt.batchSize, opt.output_nc,
-                                   opt.fineSize, opt.fineSize)
+        self.input_A = self.Tensor(opt.batchSize, opt.input_nc, opt.fineSize, opt.fineSize)
+        self.input_B = self.Tensor(opt.batchSize, opt.output_nc, opt.fineSize, opt.fineSize)
 
         # load/define networks
         # self.netG = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf,
@@ -53,69 +48,51 @@ class Pix2PixTrainer(BaseTrainer):
             for optimizer in self.optimizers:
                 self.schedulers.append(networks.get_scheduler(optimizer, opt))
 
-    def set_input(self, input):
+    def set_input(self, data):
         AtoB = self.opt.which_direction == 'AtoB'
-        input_A = input['A' if AtoB else 'B']
-        input_B = input['B' if AtoB else 'A']
-        self.input_A.resize_(input_A.size()).copy_(input_A)
-        self.input_B.resize_(input_B.size()).copy_(input_B)
-        self.image_paths = input['A_paths' if AtoB else 'B_paths']
+        data_A = data['A' if AtoB else 'B']
+        data_B = data['B' if AtoB else 'A']
+        self.input_A.resize_(data_A.size()).copy_(data_A)
+        self.input_B.resize_(data_B.size()).copy_(data_B)
+        self.image_paths = data['A_paths' if AtoB else 'B_paths']
 
-    def forward(self):
-        self.real_A = Variable(self.input_A)
-        self.fake_B = self.netG(self.real_A)
-        self.real_B = Variable(self.input_B)
-
-    # no backprop gradients
     def test(self):
         self.real_A = Variable(self.input_A, volatile=True)
         self.fake_B = self.netG(self.real_A)
         self.real_B = Variable(self.input_B, volatile=True)
 
-    # get image paths
     def get_image_paths(self):
         return self.image_paths
 
     def optimize_parameters(self):
-        self.forward()
+        real_A, real_B = Variable(self.input_A), Variable(self.input_B)
+        fake_B = self.netG(real_A)
 
         self.optimizer_D.zero_grad()
-
-        fake_AB = torch.cat((self.real_A, self.fake_B), 1)
-        pred_fake = self.netD(fake_AB.detach())
-        self.loss_D_fake = self.criterionGAN(pred_fake, False)
-        real_AB = torch.cat((self.real_A, self.real_B), 1)
-        pred_real = self.netD(real_AB)
-        self.loss_D_real = self.criterionGAN(pred_real, True)
-
-        self.loss_D = (self.loss_D_fake + self.loss_D_real) * 0.5
-        self.loss_D.backward()
-
+        fake_AB = torch.cat((real_A, fake_B), dim=1)
+        real_AB = torch.cat((real_A, real_B), dim=1)
+        loss_D_fake = self.criterionGAN(self.netD(fake_AB.detach()), False)
+        loss_D_real = self.criterionGAN(self.netD(real_AB), True)
+        loss_D = (loss_D_fake + loss_D_real) * 0.5
+        loss_D.backward()
         self.optimizer_D.step()
 
         self.optimizer_G.zero_grad()
-
-        fake_AB = torch.cat((self.real_A, self.fake_B), 1)
-        pred_fake = self.netD(fake_AB)
-        self.loss_G_GAN = self.criterionGAN(pred_fake, True)
-        self.loss_G_L1 = self.criterionL1(self.fake_B, self.real_B) * self.opt.lambda_A
-        self.loss_G = self.loss_G_GAN + self.loss_G_L1
-        self.loss_G.backward()
-
+        fake_AB = torch.cat((real_A, fake_B), dim=1)
+        loss_G_GAN = self.criterionGAN(self.netD(fake_AB), True)
+        loss_G_L1 = self.criterionL1(fake_B, real_B) * self.opt.lambda_A
+        loss_G = loss_G_GAN + loss_G_L1
+        loss_G.backward()
         self.optimizer_G.step()
 
-    def get_current_errors(self):
-        return OrderedDict([('G_GAN', self.loss_G_GAN.data[0]),
-                            ('G_L1', self.loss_G_L1.data[0]),
-                            ('D_real', self.loss_D_real.data[0]),
-                            ('D_fake', self.loss_D_fake.data[0])
-                            ])
-
-    def get_current_visuals(self):
-        real_A = util.tensor2im(self.real_A.data)
-        fake_B = util.tensor2im(self.fake_B.data)
-        real_B = util.tensor2im(self.real_B.data)
-        return OrderedDict([('real_A', real_A), ('fake_B', fake_B), ('real_B', real_B)])
+        result = {'real_A': real_A.data,
+                  'real_B': real_B.data,
+                  'fake_B': fake_B.data}
+        loss = {'G/adv': loss_G_GAN,
+                'G/l1': loss_G_L1,
+                'D/real': loss_D_real,
+                'D/fake': loss_D_fake}
+        return loss, result
 
     def save(self, label):
         self.save_network(self.netG, 'G', label, self.gpu_ids)
