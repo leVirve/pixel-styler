@@ -1,7 +1,7 @@
 import os
 
 from data.loader import CustomDatasetDataLoader
-from models.models import create_model
+from training import create_trainer
 from options.test_options import TestOptions
 from util import html
 from util.visualizer import Visualizer
@@ -14,7 +14,7 @@ opt.no_flip = True  # no flip
 
 data_loader = CustomDatasetDataLoader(opt)
 dataset = data_loader.load_data()
-model = create_model(opt)
+model = create_trainer(opt)
 visualizer = Visualizer(opt)
 # create website
 web_dir = os.path.join(opt.results_dir, opt.name, '%s_%s' % (opt.phase, opt.which_epoch))

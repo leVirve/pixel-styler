@@ -2,9 +2,10 @@ import os
 import torch
 
 
-class BaseModel():
+class BaseTrainer():
+
     def name(self):
-        return 'BaseModel'
+        return 'BaseTrainer'
 
     def initialize(self, opt):
         self.opt = opt

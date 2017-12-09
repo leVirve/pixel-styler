@@ -1,17 +1,17 @@
 from torch.autograd import Variable
 from collections import OrderedDict
 import util.util as util
-from .base_model import BaseModel
+from .base_trainer import BaseTrainer
 from . import networks
 
 
-class TestModel(BaseModel):
+class TestTrainer(BaseTrainer):
     def name(self):
         return 'TestModel'
 
     def initialize(self, opt):
         assert(not opt.isTrain)
-        BaseModel.initialize(self, opt)
+        BaseTrainer.initialize(self, opt)
         self.input_A = self.Tensor(opt.batchSize, opt.input_nc, opt.fineSize, opt.fineSize)
 
         self.netG = networks.define_G(opt.input_nc, opt.output_nc,

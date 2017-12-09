@@ -6,17 +6,16 @@ from torch.autograd import Variable
 import itertools
 import util.util as util
 from util.image_pool import ImagePool
-from .base_model import BaseModel
+from .base_trainer import BaseTrainer
 from . import networks
-import sys
 
 
-class CycleGANModel(BaseModel):
+class CycleGANTrainer(BaseTrainer):
     def name(self):
         return 'CycleGANModel'
 
     def initialize(self, opt):
-        BaseModel.initialize(self, opt)
+        BaseTrainer.initialize(self, opt)
 
         nb = opt.batchSize
         size = opt.fineSize
