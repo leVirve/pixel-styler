@@ -3,8 +3,8 @@ import random
 
 import torch
 import torchvision.transforms as transforms
+from torchvision.datasets.folder import is_image_file
 from PIL import Image
-from torchvision.datasets.folder import make_dataset
 
 
 class BaseDataset(torch.utils.data.Dataset):
@@ -170,6 +170,19 @@ class UnalignedDataset(BaseDataset):
 
     def name(self):
         return 'UnalignedDataset'
+
+
+def make_dataset(dir):
+    images = []
+    assert os.path.isdir(dir), '%s is not a valid directory' % dir
+
+    for root, _, fnames in sorted(os.walk(dir)):
+        for fname in fnames:
+            if is_image_file(fname):
+                path = os.path.join(root, fname)
+                images.append(path)
+
+    return images
 
 
 def get_transform(opt):
