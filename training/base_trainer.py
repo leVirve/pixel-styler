@@ -57,5 +57,4 @@ class BaseTrainer():
     def update_learning_rate(self):
         for scheduler in self.schedulers:
             scheduler.step()
-        lr = self.optimizers[0].param_groups[0]['lr']
-        print('learning rate = %.7f' % lr)
+        print('learning rate =', self.schedulers[0].get_lr())

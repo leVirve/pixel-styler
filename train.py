@@ -13,7 +13,7 @@ if __name__ == '__main__':
     print('#training images = %d' % len(dataloader.dataset))
 
     trainer = create_trainer(opt)
-    logger = Logger(name='dbg')
+    logger = Logger(name=opt.name)
     summary_history = HistoryExtention(logger)
     summary_image = ImageSummaryExtention(logger, summary_num_images=30)
 
@@ -21,12 +21,12 @@ if __name__ == '__main__':
         history = History(length=len(dataloader))
         progress = tqdm.tqdm(dataloader)
         for data in progress:
-            trainer.set_input(data)
-            loss_terms, visual_result = trainer.optimize_parameters()
+            loss_terms, image_result = trainer.optimize_parameters(data)
             progress.set_description(f'Epoch#{epoch}')
             progress.set_postfix(history.add(loss_terms, {}))
-            summary_image(visual_result, epoch=epoch, prefix='train_')
+            summary_image(image_result, epoch=epoch, prefix='train_')
 
+        logger.clear_state()  # clear summary_image state
         summary_history(history.metric(), epoch)
         trainer.update_learning_rate()
 

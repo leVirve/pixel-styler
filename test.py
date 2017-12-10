@@ -4,7 +4,7 @@ from data.loader import CustomDataLoader
 from training import create_trainer
 from options import TestOptions
 from util import html
-from util.visualizer import Visualizer
+# from util.visualizer import Visualizer
 
 opt = TestOptions().parse()
 opt.nThreads = 1   # test code only supports nThreads = 1
@@ -14,10 +14,10 @@ opt.no_flip = True  # no flip
 
 dataloader = CustomDataLoader(opt)
 model = create_trainer(opt)
-visualizer = Visualizer(opt)
+# visualizer = Visualizer(opt)
 # create website
 web_dir = os.path.join(opt.results_dir, opt.name, '%s_%s' % (opt.phase, opt.which_epoch))
-webpage = html.HTML(web_dir, 'Experiment = %s, Phase = %s, Epoch = %s' % (opt.name, opt.phase, opt.which_epoch))
+# webpage = html.HTML(web_dir, 'Experiment = %s, Phase = %s, Epoch = %s' % (opt.name, opt.phase, opt.which_epoch))
 # test
 for i, data in enumerate(dataloader):
     if i >= opt.how_many:
@@ -27,6 +27,6 @@ for i, data in enumerate(dataloader):
     visuals = model.get_current_visuals()
     img_path = model.get_image_paths()
     print('process image... %s' % img_path)
-    visualizer.save_images(webpage, visuals, img_path)
+    # visualizer.save_images(webpage, visuals, img_path)
 
-webpage.save()
+# webpage.save()

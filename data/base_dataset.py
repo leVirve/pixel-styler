@@ -8,19 +8,17 @@ from PIL import Image
 
 
 class BaseDataset(torch.utils.data.Dataset):
+    name = 'BaseDataset'
 
     def __init__(self):
         super().__init__()
 
-    def name(self):
-        return 'BaseDataset'
-
-    def initialize(self, opt):
-        raise NotImplementedError
-
 
 class SingleDataset(BaseDataset):
-    def initialize(self, opt):
+    name = 'SingleDataset'
+
+    def __init__(self, opt):
+        super().__init__()
         self.opt = opt
         self.root = opt.dataroot
         self.dir_A = os.path.join(opt.dataroot)
@@ -49,13 +47,12 @@ class SingleDataset(BaseDataset):
     def __len__(self):
         return len(self.A_paths)
 
-    def name(self):
-        return 'SingleImageDataset'
-
 
 class AlignedDataset(BaseDataset):
+    name = 'AlignedDataset'
 
-    def initialize(self, opt):
+    def __init__(self, opt):
+        super().__init__()
         self.opt = opt
         self.root = opt.dataroot
         self.dir_AB = os.path.join(opt.dataroot, opt.phase)
@@ -114,12 +111,12 @@ class AlignedDataset(BaseDataset):
     def __len__(self):
         return len(self.AB_paths)
 
-    def name(self):
-        return 'AlignedDataset'
-
 
 class UnalignedDataset(BaseDataset):
-    def initialize(self, opt):
+    name = 'UnalignedDataset'
+
+    def __init__(self, opt):
+        super().__init__()
         self.opt = opt
         self.root = opt.dataroot
         self.dir_A = os.path.join(opt.dataroot, opt.phase + 'A')
@@ -167,9 +164,6 @@ class UnalignedDataset(BaseDataset):
 
     def __len__(self):
         return max(self.A_size, self.B_size)
-
-    def name(self):
-        return 'UnalignedDataset'
 
 
 def make_dataset(dir):

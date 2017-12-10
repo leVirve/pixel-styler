@@ -7,15 +7,6 @@ import numpy as np
 import os
 import collections
 
-# Converts a Tensor into a Numpy array
-# |imtype|: the desired type of the converted numpy array
-def tensor2im(image_tensor, imtype=np.uint8):
-    image_numpy = image_tensor[0].cpu().float().numpy()
-    if image_numpy.shape[0] == 1:
-        image_numpy = np.tile(image_numpy, (3, 1, 1))
-    image_numpy = (np.transpose(image_numpy, (1, 2, 0)) + 1) / 2.0 * 255.0
-    return image_numpy.astype(imtype)
-
 
 def diagnose_network(net, name='network'):
     mean = 0.0
@@ -33,6 +24,7 @@ def diagnose_network(net, name='network'):
 def save_image(image_numpy, image_path):
     image_pil = Image.fromarray(image_numpy)
     image_pil.save(image_path)
+
 
 def info(object, spacing=10, collapse=1):
     """Print methods and doc strings.

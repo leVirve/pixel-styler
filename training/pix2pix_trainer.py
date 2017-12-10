@@ -6,24 +6,25 @@ from training import networks
 from util.image_pool import ImagePool
 
 
-class Pix2pixTrainer(BaseTrainer):
+class Pix2PixTrainer(BaseTrainer):
+    name = 'Pix2PixTrainer'
 
-    def name(self):
-        return 'Pix2pixTrainer'
-
-    def initialize(self, opt):
+    def __init__(self, opt):
         BaseTrainer.initialize(self, opt)
         self.isTrain = opt.isTrain
         self.input_A = self.Tensor(opt.batchSize, opt.input_nc, opt.fineSize, opt.fineSize)
         self.input_B = self.Tensor(opt.batchSize, opt.output_nc, opt.fineSize, opt.fineSize)
 
         # load/define networks
-        # self.netG = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf,
-        #                               opt.which_model_netG, opt.norm, not opt.no_dropout, opt.init_type, self.gpu_ids)
-        self.netG = networks.define_G(3, 3, 64, 'unet_128', opt.norm, not opt.no_dropout, 'xavier', self.gpu_ids)
+        self.netG = networks.define_G(
+            opt.input_nc, opt.output_nc, opt.ngf,
+            opt.which_model_netG, opt.norm, not opt.no_dropout, opt.init_type, self.gpu_ids)
         if self.isTrain:
             use_sigmoid = opt.no_lsgan
-            self.netD = networks.define_D(6, 64, 'basic', opt.n_layers_D, opt.norm, False, opt.init_type, self.gpu_ids)
+            self.netD = networks.define_D(
+                opt.input_nc + opt.output_nc, opt.ndf,
+                opt.which_model_netD,
+                opt.n_layers_D, opt.norm, use_sigmoid, opt.init_type, self.gpu_ids)
         if not self.isTrain or opt.continue_train:
             self.load_network(self.netG, 'G', opt.which_epoch)
             if self.isTrain:
@@ -32,40 +33,34 @@ class Pix2pixTrainer(BaseTrainer):
         if self.isTrain:
             self.fake_AB_pool = ImagePool(opt.pool_size)
             self.old_lr = opt.lr
-            # define loss functions
             self.criterionGAN = networks.GANLoss(use_lsgan=True, tensor=self.Tensor)
             self.criterionL1 = torch.nn.L1Loss()
 
-            # initialize optimizers
-            self.schedulers = []
-            self.optimizers = []
-            self.optimizer_G = torch.optim.Adam(self.netG.parameters(),
-                                                lr=opt.lr, betas=(opt.beta1, 0.999))
-            self.optimizer_D = torch.optim.Adam(self.netD.parameters(),
-                                                lr=opt.lr, betas=(opt.beta1, 0.999))
-            self.optimizers.append(self.optimizer_G)
-            self.optimizers.append(self.optimizer_D)
-            for optimizer in self.optimizers:
-                self.schedulers.append(networks.get_scheduler(optimizer, opt))
-
-    def set_input(self, data):
-        AtoB = self.opt.which_direction == 'AtoB'
-        data_A = data['A' if AtoB else 'B']
-        data_B = data['B' if AtoB else 'A']
-        self.input_A.resize_(data_A.size()).copy_(data_A)
-        self.input_B.resize_(data_B.size()).copy_(data_B)
-        self.image_paths = data['A_paths' if AtoB else 'B_paths']
+            self.optimizer_G = torch.optim.Adam(self.netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
+            self.optimizer_D = torch.optim.Adam(self.netD.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
+            self.schedulers = [
+                networks.get_scheduler(optimizer, opt)
+                for optimizer in (self.optimizer_G, self.optimizer_D)]
 
     def test(self):
         self.real_A = Variable(self.input_A, volatile=True)
         self.fake_B = self.netG(self.real_A)
         self.real_B = Variable(self.input_B, volatile=True)
 
-    def get_image_paths(self):
+    def get_image_paths(self, data):
+        AtoB = self.opt.which_direction == 'AtoB'
+        self.image_paths = data['A_paths' if AtoB else 'B_paths']
         return self.image_paths
 
-    def optimize_parameters(self):
+    def optimize_parameters(self, data):
+        AtoB = self.opt.which_direction == 'AtoB'
+        data_A = data['A' if AtoB else 'B']
+        data_B = data['B' if AtoB else 'A']
+
+        self.input_A.resize_(data_A.size()).copy_(data_A)
+        self.input_B.resize_(data_B.size()).copy_(data_B)
         real_A, real_B = Variable(self.input_A), Variable(self.input_B)
+        # real_A, real_B = Variable(data_A), Variable(data_B)
         fake_B = self.netG(real_A)
 
         self.optimizer_D.zero_grad()

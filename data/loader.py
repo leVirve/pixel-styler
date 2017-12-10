@@ -2,22 +2,27 @@ import torch
 
 
 def create_dataset(opt):
-    dataset = None
+    builder = None
     if opt.dataset_mode == 'aligned':
         from data.base_dataset import AlignedDataset
-        dataset = AlignedDataset()
+        builder = AlignedDataset
     elif opt.dataset_mode == 'unaligned':
         from data.base_dataset import UnalignedDataset
-        dataset = UnalignedDataset()
+        builder = UnalignedDataset
     elif opt.dataset_mode == 'single':
         from data.base_dataset import SingleDataset
-        dataset = SingleDataset()
+        builder = SingleDataset
+    elif opt.dataset_mode == 'bmvc_wei':
+        from data.flower import BMVCFlower
+        builder = BMVCFlower
+    elif opt.dataset_mode == 'mscoco':
+        from data.coco import CocoDataLoader
+        builder = CocoDataLoader
     else:
-        raise ValueError("Dataset [%s] not recognized." % opt.dataset_mode)
+        raise ValueError('Dataset [%s] not recognized.' % opt.dataset_mode)
 
-    print("dataset [%s] was created" % (dataset.name()))
-    dataset.initialize(opt)
-    return dataset
+    print('Dataset [%s] was created' % (builder.name))
+    return builder(opt)
 
 
 class CustomDataLoader():
