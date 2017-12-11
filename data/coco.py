@@ -21,7 +21,7 @@ class CocoDataLoader(onegan.io.loader.BaseDastaset):
 
         self.phase = 'train' if opt.isTrain else 'val'
         self.root = opt.dataroot
-        self.coco = self._cache_coco()
+        self.coco = self._cache_coco(subjects)
         self.category_ids = self.coco.getCatIds(catNms=subjects)
         self.image_ids = sorted(self.coco.getImgIds(catIds=self.category_ids))
         self.transform = T.Compose([
@@ -31,9 +31,9 @@ class CocoDataLoader(onegan.io.loader.BaseDastaset):
         ])
         print('{} images: {}'.format(self.phase, len(self)))
 
-    def _cache_coco(self):
+    def _cache_coco(self, subjects):
         os.makedirs('./cache', exist_ok=True)
-        filepath = f'./cache/coco_{self.phase}.cache'
+        filepath = f'./cache/coco_{self.phase}_{"-".join(subjects)}.cache'
         if os.path.exists(filepath):
             with open(filepath, 'rb') as f:
                 return pickle.load(f)
