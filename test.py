@@ -1,32 +1,34 @@
 import os
+import scipy.misc
 
 from data.loader import CustomDataLoader
 from training import create_trainer
 from options import TestOptions
-from util import html
-# from util.visualizer import Visualizer
 
-opt = TestOptions().parse()
-opt.nThreads = 1   # test code only supports nThreads = 1
-opt.batchSize = 1  # test code only supports batchSize = 1
-opt.serial_batches = True  # no shuffle
-opt.no_flip = True  # no flip
 
-dataloader = CustomDataLoader(opt)
-model = create_trainer(opt)
-# visualizer = Visualizer(opt)
-# create website
-web_dir = os.path.join(opt.results_dir, opt.name, '%s_%s' % (opt.phase, opt.which_epoch))
-# webpage = html.HTML(web_dir, 'Experiment = %s, Phase = %s, Epoch = %s' % (opt.name, opt.phase, opt.which_epoch))
-# test
-for i, data in enumerate(dataloader):
-    if i >= opt.how_many:
-        break
-    model.set_input(data)
-    model.test()
-    visuals = model.get_current_visuals()
-    img_path = model.get_image_paths()
-    print('process image... %s' % img_path)
-    # visualizer.save_images(webpage, visuals, img_path)
+if __name__ == '__main__':
+    parser = TestOptions()
+    parser.parser.add_argument('--subjects', type=str, nargs='+')
+    opt = parser.parse()
+    opt.nThreads = 1
+    opt.batchSize = 1
+    opt.serial_batches = True
+    opt.no_flip = True
 
-# webpage.save()
+    AtoB = opt.which_direction == 'AtoB'
+
+    dataloader = CustomDataLoader(opt)
+    trainer = create_trainer(opt)
+    output_dir = os.path.join(opt.results_dir, opt.name, f'{opt.phase}_{opt.subjects[0]}_{opt.which_epoch}')
+    os.makedirs(output_dir, exist_ok=True)
+
+    for i, data in enumerate(dataloader):
+        if i >= opt.how_many:
+            break
+        visuals = trainer.test(data)
+        img_path = data['A_paths' if AtoB else 'B_paths'][0] or f'{i}.png'
+        print(f'process image... {img_path}')
+        for name, img in visuals.items():
+            scipy.misc.imsave(
+                os.path.join(output_dir, name + img_path),
+                img.squeeze().permute(1, 2, 0).cpu().numpy())

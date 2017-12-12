@@ -16,13 +16,12 @@ class CocoDataLoader(onegan.io.loader.BaseDastaset):
     name = 'CocoDataLoader'
 
     def __init__(self, opt):
-        subjects = ['cat']
         target_size = (opt.fineSize, opt.fineSize)
 
         self.phase = 'train' if opt.isTrain else 'val'
         self.root = opt.dataroot
-        self.coco = self._cache_coco(subjects)
-        self.category_ids = self.coco.getCatIds(catNms=subjects)
+        self.coco = self._cache_coco(opt.subjects)
+        self.category_ids = self.coco.getCatIds(catNms=opt.subjects)
         self.image_ids = sorted(self.coco.getImgIds(catIds=self.category_ids))
         self.transform = T.Compose([
             T.Resize(target_size, interpolation=Image.BICUBIC),
