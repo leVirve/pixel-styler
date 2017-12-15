@@ -14,10 +14,11 @@ This is an ongoing refactoring on [official PyTorch implementation](https://gith
 
 ### Installation
 
-* Install [PyTorch](http://pytorch.org)
-* Install [torchvision](https://github.com/pytorch/vision)
-* Install [tensorboard](https://github.com/tensorflow/tensorboard) from [Tensorflow](https://github.com/tensorflow/tensorflow)
-* Install [tensorboard-pytorch](https://github.com/lanpa/tensorboard-pytorch) and [OneGAN](https://github.com/leVirve/OneGAN)
+* [PyTorch](http://pytorch.org)
+* [torchvision](https://github.com/pytorch/vision)
+* [tensorboard](https://github.com/tensorflow/tensorboard) from [Tensorflow](https://github.com/tensorflow/tensorflow)
+* [tensorboard-pytorch](https://github.com/lanpa/tensorboard-pytorch)
+* [OneGAN](https://github.com/leVirve/OneGAN) >= 0.2
 * Clone this repo:
   ```bash
   git clone https://github.com/leVirve/pix2pix-refactor

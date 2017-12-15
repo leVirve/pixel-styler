@@ -3,6 +3,7 @@ import os
 
 import torch
 from torch.autograd import Variable
+import onegan.losses as L
 
 from training import networks
 from training.image_pool import ImagePool
@@ -15,7 +16,6 @@ class BaseTrainer:
         self.opt = opt
         self.gpu_ids = opt.gpu_ids
         self.isTrain = opt.isTrain
-        self.Tensor = torch.cuda.FloatTensor if self.gpu_ids else torch.Tensor
         self.save_dir = os.path.join(opt.checkpoints_dir, opt.name)
 
     def _prepare_data(self, data):
@@ -53,11 +53,6 @@ class Pix2PixTrainer(BaseTrainer):
 
     def __init__(self, opt):
         super().__init__(opt)
-        self.isTrain = opt.isTrain
-        self.input_A = self.Tensor(opt.batchSize, opt.input_nc, opt.fineSize, opt.fineSize)
-        self.input_B = self.Tensor(opt.batchSize, opt.output_nc, opt.fineSize, opt.fineSize)
-
-        # load/define networks
         self.netG = networks.define_G(
             opt.input_nc, opt.output_nc, opt.ngf,
             opt.which_model_netG, opt.norm, not opt.no_dropout, opt.init_type, self.gpu_ids)
@@ -65,8 +60,7 @@ class Pix2PixTrainer(BaseTrainer):
             use_sigmoid = opt.no_lsgan
             self.netD = networks.define_D(
                 opt.input_nc + opt.output_nc, opt.ndf,
-                opt.which_model_netD,
-                opt.n_layers_D, opt.norm, use_sigmoid, opt.init_type, self.gpu_ids)
+                opt.which_model_netD, opt.n_layers_D, opt.norm, use_sigmoid, opt.init_type, self.gpu_ids)
         if not self.isTrain or opt.continue_train:
             self.load_network(self.netG, 'G', opt.which_epoch)
             if self.isTrain:
@@ -75,8 +69,6 @@ class Pix2PixTrainer(BaseTrainer):
         if self.isTrain:
             self.fake_AB_pool = ImagePool(opt.pool_size)
             self.old_lr = opt.lr
-            self.criterionGAN = networks.GANLoss(use_lsgan=True, tensor=self.Tensor)
-            self.criterionL1 = torch.nn.L1Loss()
 
             self.optimizer_G = torch.optim.Adam(self.netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
             self.optimizer_D = torch.optim.Adam(self.netD.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
@@ -84,45 +76,41 @@ class Pix2PixTrainer(BaseTrainer):
                 networks.get_scheduler(optimizer, opt)
                 for optimizer in (self.optimizer_G, self.optimizer_D)]
 
-    def _prepare_data(self, data):
-        AtoB = self.opt.which_direction == 'AtoB'
-        data_A = data['A' if AtoB else 'B']
-        data_B = data['B' if AtoB else 'A']
-        self.input_A.resize_(data_A.size()).copy_(data_A)
-        self.input_B.resize_(data_B.size()).copy_(data_B)
-        # return data_A, data_B
-
     def test(self, data):
-        self._prepare_data(data)
-        real_A = Variable(self.input_A, volatile=True)
-        real_B = Variable(self.input_B, volatile=True)
+        input_A, input_B = data
+        real_A = Variable(input_A, volatile=True)
+        real_B = Variable(input_B, volatile=True)
         fake_B = self.netG(real_A)
         return {'real_A': real_A.data, 'real_B': real_B.data, 'fake_B': fake_B.data}
 
-    def optimize_parameters(self, data):
-        self._prepare_data(data)
-        real_A, real_B = Variable(self.input_A), Variable(self.input_B)
+    def optimize_parameters(self, data, update_g=False, update_d=True):
+        input_A, input_B = data
+        real_A, real_B = Variable(input_A), Variable(input_B)
         fake_B = self.netG(real_A)
 
         self.optimizer_D.zero_grad()
-        fake_AB = torch.cat((real_A, fake_B), dim=1)
+        fake_AB = self.fake_AB_pool.query(torch.cat((real_A, fake_B), dim=1).data)
         real_AB = torch.cat((real_A, real_B), dim=1)
-        loss_D_fake = self.criterionGAN(self.netD(fake_AB.detach()), False)
-        loss_D_real = self.criterionGAN(self.netD(real_AB), True)
+        loss_D_fake = L.adversarial_w_loss(self.netD(fake_AB.detach()), False)
+        loss_D_real = L.adversarial_w_loss(self.netD(real_AB), True)
+        loss_D_gp = L.gradient_penalty(self.netD, real_AB, fake_AB) * 10
         loss_D = (loss_D_fake + loss_D_real) * 0.5
-        loss_D.backward()
+        if update_d:
+            loss_D.backward()
+            loss_D_gp.backward()
         self.optimizer_D.step()
 
         self.optimizer_G.zero_grad()
         fake_AB = torch.cat((real_A, fake_B), dim=1)
-        loss_G_GAN = self.criterionGAN(self.netD(fake_AB), True)
-        loss_G_L1 = self.criterionL1(fake_B, real_B) * self.opt.lambda_A
+        loss_G_GAN = L.adversarial_w_loss(self.netD(fake_AB), True)
+        loss_G_L1 = L.l1_loss(fake_B, real_B) * self.opt.lambda_A
         loss_G = loss_G_GAN + loss_G_L1
-        loss_G.backward()
+        if update_g:
+            loss_G.backward()
         self.optimizer_G.step()
 
         result = {'real_A': real_A.data, 'real_B': real_B.data, 'fake_B': fake_B.data}
-        loss = {'G/adv': loss_G_GAN, 'G/l1': loss_G_L1, 'D/real': loss_D_real, 'D/fake': loss_D_fake}
+        loss = {'G/adv': loss_G_GAN, 'G/l1': loss_G_L1, 'D/real': loss_D_real, 'D/fake': loss_D_fake, 'D/gp': loss_D_gp}
         return loss, result
 
     def save(self, label):

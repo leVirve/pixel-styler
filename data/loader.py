@@ -27,14 +27,24 @@ def create_dataset(opt):
 
 class CustomDataLoader():
 
-    def __init__(self, opt):
+    def __init__(self, opt, phase='train'):
         self.opt = opt
-        self.dataset = create_dataset(opt)
+        self.dataset = self._create_dataset_wrapper(opt, phase)
         self.dataloader = torch.utils.data.DataLoader(
             self.dataset,
             batch_size=opt.batchSize,
             shuffle=not opt.serial_batches,
             num_workers=int(opt.nThreads))
+
+    def _create_dataset_wrapper(self, opt, phase):
+        if phase == 'val':
+            opt.isTrain = False
+            opt.serial_batches = True
+            val_dataset = create_dataset(opt)
+            opt.isTrain = True
+            opt.serial_batches = False
+            return val_dataset
+        return create_dataset(opt)
 
     def __len__(self):
         return min(len(self.dataset), self.opt.max_dataset_size) // self.opt.batchSize

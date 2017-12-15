@@ -16,7 +16,7 @@ class CocoDataLoader(onegan.io.loader.BaseDastaset):
     name = 'CocoDataLoader'
 
     def __init__(self, opt):
-        target_size = (opt.fineSize, opt.fineSize)
+        self.target_size = (opt.fineSize, opt.fineSize)
 
         self.phase = 'train' if opt.isTrain else 'val'
         self.root = opt.dataroot
@@ -24,7 +24,7 @@ class CocoDataLoader(onegan.io.loader.BaseDastaset):
         self.category_ids = self.coco.getCatIds(catNms=opt.subjects)
         self.image_ids = sorted(self.coco.getImgIds(catIds=self.category_ids))
         self.transform = T.Compose([
-            T.Resize(target_size, interpolation=Image.BICUBIC),
+            T.Resize(self.target_size, interpolation=Image.BICUBIC),
             T.ToTensor(),
             T.Normalize(mean=[.5, .5, .5], std=[.5, .5, .5])
         ])
@@ -52,10 +52,32 @@ class CocoDataLoader(onegan.io.loader.BaseDastaset):
 
         return img, seg
 
+    def get_center_masked_pair(self, img, seg):
+        origin_img = img.copy()
+        masked_img = img.copy()
+        mask = np.zeros(img.shape, dtype='uint8')
+        binseg = np.zeros((*img.shape[:2], 1), dtype='uint8')
+
+        w, h, _ = img.shape
+        min_x, max_x = w // 4, w // 4 * 3
+        min_y, max_y = h // 4, h // 4 * 3
+
+        masked_img[min_x:max_x, min_y:max_y, :] = 0
+        mask[min_x:max_x, min_y:max_y, :] = 1
+
+        for k in range(seg.shape[0]):
+            binseg[seg[k] == 1] = 1
+
+        return origin_img, masked_img, mask, binseg
+
     def get_masked_pair(self, img, seg):
         origin_img = img.copy()
         masked_img = img.copy()
         mask = np.zeros(img.shape, dtype='uint8')
+        binseg = np.zeros((*img.shape[:2], 1), dtype='uint8')
+
+        if self.phase == 'val':
+            np.random.seed(9487)
 
         for k in range(seg.shape[0]):
 
@@ -82,26 +104,22 @@ class CocoDataLoader(onegan.io.loader.BaseDastaset):
 
             masked_img[min_x:max_x, min_y:max_y, :] = 0
             mask[min_x:max_x, min_y:max_y, :] = 1
+            binseg[seg[k] == 1] = 1
 
-        return origin_img, masked_img, mask
+        return origin_img, masked_img, mask, binseg
 
     def __getitem__(self, index):
         img, seg = self.load_example(index)
-        origin, masked, mask = self.get_masked_pair(img, seg)
+        # origin, masked, mask, binseg = self.get_masked_pair(img, seg)
+        origin, masked, mask, binseg = self.get_center_masked_pair(img, seg)
         return {
             'A': self.transform(F.to_pil_image(masked)),
             'B': self.transform(F.to_pil_image(origin)),
             'A_paths': '',
             'B_paths': '',
-            'mask': torch.from_numpy(np.array(F.resize(F.to_pil_image(mask), (256, 256), interpolation=Image.NEAREST))).permute(2, 0, 1),
+            'mask': torch.from_numpy(np.array(F.resize(F.to_pil_image(mask), self.target_size, interpolation=Image.NEAREST))).permute(2, 0, 1),
+            'binseg': torch.from_numpy(np.array(F.resize(F.to_pil_image(binseg), self.target_size, interpolation=Image.NEAREST))).unsqueeze(0).float(),
         }
 
     def __len__(self):
         return len(self.image_ids)
-
-
-if __name__ == '__main__':
-    dataloader = CocoDataLoader(data_folder='/archive/datasets/mscoco', subjects=['person'], target_size=(256, 256))
-
-    img, seg = dataloader.load_example(80)
-    origin_img, masked_img = dataloader.get_masked_pair(img, seg)
