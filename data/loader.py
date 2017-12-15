@@ -12,9 +12,6 @@ def create_dataset(opt):
     elif opt.dataset_mode == 'single':
         from data.base_dataset import SingleDataset
         builder = SingleDataset
-    elif opt.dataset_mode == 'bmvc_wei':
-        from data.flower import BMVCFlower
-        builder = BMVCFlower
     elif opt.dataset_mode == 'mscoco':
         from data.coco import CocoDataLoader
         builder = CocoDataLoader

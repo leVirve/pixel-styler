@@ -8,11 +8,10 @@ import torchvision.transforms as T
 import torchvision.transforms.functional as F
 from PIL import Image
 
-import onegan
 from pycocotools.coco import COCO
 
 
-class CocoDataLoader(onegan.io.loader.BaseDastaset):
+class CocoDataLoader:
     name = 'CocoDataLoader'
 
     def __init__(self, opt):
