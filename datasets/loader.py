@@ -4,19 +4,19 @@ import torch
 def create_dataset(opt):
     builder = None
     if opt.dataset_mode == 'aligned':
-        from data.base_dataset import AlignedDataset
+        from datasets.base_dataset import AlignedDataset
         builder = AlignedDataset
     elif opt.dataset_mode == 'unaligned':
-        from data.base_dataset import UnalignedDataset
+        from datasets.base_dataset import UnalignedDataset
         builder = UnalignedDataset
     elif opt.dataset_mode == 'single':
-        from data.base_dataset import SingleDataset
+        from datasets.base_dataset import SingleDataset
         builder = SingleDataset
     elif opt.dataset_mode == 'mscoco':
-        from data.coco import CocoDataLoader
+        from datasets.coco import CocoDataLoader
         builder = CocoDataLoader
     elif opt.dataset_mode == 'voc':
-        from data.voc import VOC2010Loader
+        from datasets.voc import VOC2010Loader
         builder = VOC2010Loader
     else:
         raise ValueError('Dataset [%s] not recognized.' % opt.dataset_mode)

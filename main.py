@@ -1,50 +1,57 @@
-import torch
+import logging
+
 import torch.backends.cudnn as cudnn
 
-import pix2pix
-from pix2pix.torch import datasets
+from datasets.loader import CustomDataLoader
+from training import core, networks
 
 cudnn.benchmark = True
 
 
+def create_model(args):
+
+    def g_net():
+        return networks.define_G(
+            args.input_nc, args.output_nc, args.ngf,
+            args.which_model_netG, args.norm, not args.no_dropout,
+            args.init_type, args.gpu_ids)
+
+    def d_net():
+        return networks.define_D(
+            args.input_nc + args.output_nc, args.ndf,
+            args.which_model_netD, args.n_layers_D, args.norm, args.no_lsgan,
+            args.init_type, args.gpu_ids) if args.isTrain else None
+
+    return {
+        'cyclegan': lambda: ((g_net(), g_net()), (d_net(), d_net())),
+        'pix2pix': lambda: (g_net(), d_net()),
+    }[args.model]()
+
+
 def main():
-    opt = pix2pix.parser.parse_args()
+    log = logging.getLogger('pixsty')
 
-    print('===> Load datasets')
+    from options import TrainOptions
+    parser = TrainOptions()
+    parser.parser.add_argument('--subjects', type=str, nargs='+')
+    args = parser.parse()
 
-    if opt.folderA and opt.folderB:
-        train_dataset = datasets.ImageMixFolderDatasets(
-                dataset_a=opt.folderA, dataset_b=opt.folderB)
-        test_dataset = train_dataset
-    else:
-        train_dataset = datasets.ImageFolderDataset(
-            root='./datasets/%s/train' % opt.dataset)
-        test_dataset = datasets.ImageFolderDataset(
-            root='./datasets/%s/test' % opt.dataset)
-
-    train_loader = torch.utils.data.DataLoader(
-        dataset=train_dataset,
-        batch_size=opt.batchSize,
-        num_workers=opt.workers,
-        pin_memory=True,
-        shuffle=True)
-    test_loader = torch.utils.data.DataLoader(
-        dataset=test_dataset,
-        batch_size=1,
-        num_workers=opt.workers,
-        pin_memory=True)
+    log.info('Create dataset')
+    train_loader = CustomDataLoader(args, phase='train')
+    val_loader = CustomDataLoader(args, phase='val')
+    print('training images = %d' % len(train_loader.dataset))
+    print('validation images = %d' % len(val_loader.dataset))
 
     print('===> Build model')
-    pix = pix2pix.torch.Pix2Pix(opt, train_dataset)
-    pix.detail()
+    models = create_model(args)
 
-    if opt.phase == 'train':
-        print('===> Train model')
-        pix.train(train_loader)
-        pix.save_model()
-    else:
-        pix.test(test_loader)
+    core_fn = core.training_estimator(models, args)
+    core_fn(train_loader, val_loader, epochs=50)
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO,
+                        format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+                        datefmt='%m-%d %H:%M',
+                        handlers=[logging.StreamHandler(), ])
     main()

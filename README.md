@@ -1,100 +1,20 @@
-# pix2pix
-
-A PyTorch implementation of "Image-to-Image Translation with Conditional Adversarial Nets", known as [`pix2pix`](https://phillipi.github.io/pix2pix/), for learning a mapping from input images to output images.
-
-An exmple batch of intermediate generated fake results from model at epoch#500 in dataset `facades` (labels -> facades).
-
-![](docs/fake_samples_epoch500.png)
-
-## Prerequisites
-
-- Linux
-- NVIDIA GPU + CUDA CuDNN (CPU mode may also work)
-
-## Environments
-
-- Python 3.5+ only
-- PyTorch
-- tochvision
-
-## Train / Test
-
-```bash
-python main.py --phase [train | test]
-
-# Use `python main.py --help` for help
-# Help
-usage: main.py [-h] --phase PHASE [--epochs EPOCHS] [--batchSize BATCHSIZE]
-               [--imageSize IMAGESIZE]
-               [--input_nc INPUT_NC] [--output_nc OUTPUT_NC]
-               [--ngf NGF] [--ndf NDF]
-               [--lr LR] [--beta1 BETA1] [--lamb LAMB]
-               [--save_freq SAVE_FREQ] [--log_freq LOG_FREQ]
-               [--direction DIRECTION] [--dataset DATASET] [--folderA FOLDERA] [--folderB FOLDERB]
-               [--log_dir LOG_DIR] [--result_dir RESULT_DIR]
-               [--netG NETG] [--netD NETD] [--workers WORKERS] [--ngpu NGPU] [--cuda]
-```
-
-### Train
-
-- Train with different datasets from `phillipi`, just change the `--datasets`
-
-    ```bash
-    python main.py --phase train --cuda --epochs 200 --batchSize 1 --log_freq 10 --datasets facades
-    ```
-
-- Train with self-defined structure of datasets, two folders for each side, use the `--folderA` and `--folderB`
-
-    ```bash
-    python main.py --phase train --cuda --folderA folderA/traj0/trainA --folderB datasets/traj0/trainB
-    ```
-
-### Test
-
-```bash
-python main.py --phase test --cuda --netG logs/generator_epoch200.pth
-```
-
-## Datasets
-
-Download the datasets with  the script [`download_dataset.sh`](https://github.com/phillipi/pix2pix/blob/master/datasets/download_dataset.sh) from [phillipi](https://github.com/phillipi):
-
-```bash
-bash ./datasets/download_dataset.sh dataset_name
-```
-
-In current experiment, only `facades` dataset is used for reproducing implementation with PyTorch.
-
-- `facades`: 400 images from [CMP Facades dataset](http://cmp.felk.cvut.cz/~tylecr1/facade/).
-
-## Acknowledgement
-- [phillipi/pix2pix](https://github.com/phillipi/pix2pix)
-- [mrzhu-cool/pix2pix-pytorch](https://github.com/mrzhu-cool/pix2pix-pytorch)
 # Refactored CycleGAN / pix2pix
 
-<img src='demo/imgs/horse2zebra.gif' width=384><br>
+<img src='docs/horse2zebra.gif' width=384><br>
 
-This is an ongoing refactoring on [official PyTorch implementation](https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix) for paired and unpaired image-to-image translation.
+This is a concise refactoring version of [official PyTorch implementation](https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix) for image-to-image translation.
+
+* More readable and reusable.
+* Use abstract [externel OneGAN](https://github.com/leVirve/OneGAN) estimator with tailored functional closures.
+* Use TensorBoard to visualize the `scalar` and `image` in training procedure.
 
 ## Prerequisites
 
-* Linux
 * Python 3.6+
-* Nvidia GPU with CUDA and CuDNN
+* PyTorch >= `0.3` and `torchvision` >= `0.2`
+* [OneGAN](https://github.com/leVirve/OneGAN) >= 0.3.1
 
 ## Getting Started
-
-### Installation
-
-* [PyTorch](http://pytorch.org)
-* [torchvision](https://github.com/pytorch/vision)
-* [tensorboard](https://github.com/tensorflow/tensorboard) from [Tensorflow](https://github.com/tensorflow/tensorflow)
-* [tensorboard-pytorch](https://github.com/lanpa/tensorboard-pytorch)
-* [OneGAN](https://github.com/leVirve/OneGAN) >= 0.2
-* Clone this repo:
-  ```bash
-  git clone https://github.com/leVirve/pix2pix-refactor
-  ```
 
 ### CycleGAN train/test
 
@@ -219,8 +139,3 @@ This will combine each pair of images (A,B) into a single image file, ready for 
 [[Project]](https://phillipi.github.io/pix2pix/) [[Paper]](https://arxiv.org/pdf/1611.07004v1.pdf) [[Torch]](https://github.com/phillipi/pix2pix)
 
 <img src="https://phillipi.github.io/pix2pix/images/teaser_v3.png" width="900px"/>
-
-### [[EdgesCats Demo]](https://affinelayer.com/pixsrv/)  [[pix2pix-tensorflow]](https://github.com/affinelayer/pix2pix-tensorflow)
-Written by [Christopher Hesse](https://twitter.com/christophrhesse)
-
-<img src='demo/imgs/edges2cats.jpg' width="600px"/>
