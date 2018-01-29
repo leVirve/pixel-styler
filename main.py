@@ -45,5 +45,6 @@ def main():
     else:
         pix.test(test_loader)
 
+
 if __name__ == '__main__':
     main()
