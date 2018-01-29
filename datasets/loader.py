@@ -42,7 +42,6 @@ class CustomDataLoader():
             opt.serial_batches = True
             val_dataset = create_dataset(opt)
             opt.isTrain = True
-            opt.serial_batches = False
             return val_dataset
         return create_dataset(opt)
 

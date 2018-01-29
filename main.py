@@ -18,7 +18,7 @@ def create_model(args):
 
     def d_net():
         return networks.define_D(
-            args.input_nc + args.output_nc, args.ndf,
+            args.input_nc + args.output_nc if args.model == 'pix2pix' else args.output_nc, args.ndf,
             args.which_model_netD, args.n_layers_D, args.norm, args.no_lsgan,
             args.init_type, args.gpu_ids) if args.isTrain else None
 
@@ -45,8 +45,12 @@ def main():
     print('===> Build model')
     models = create_model(args)
 
-    core_fn = core.training_estimator(models, args)
-    core_fn(train_loader, val_loader, epochs=50)
+    core_fn = {
+        'pix2pix': core.training_estimator,
+        'cyclegan': core.cyclegan_estimator,
+    }[args.model]
+    estimator_fn = core_fn(models, args)
+    estimator_fn(train_loader, val_loader, epochs=50)
 
 
 if __name__ == '__main__':
