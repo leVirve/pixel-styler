@@ -1,6 +1,6 @@
 import tqdm
 import torch
-from onegan.extensions import Logger, History
+from onegan.extensions import History, TensorBoardLogger
 
 from data.loader import CustomDataLoader
 from options import TrainOptions
@@ -26,33 +26,36 @@ def main(opt):
     print('validation images = %d' % len(val_loader.dataset))
 
     trainer = create_trainer(opt)
-    logger = Logger(name=opt.name, max_num_images=30)
+    logger = TensorBoardLogger(name=opt.name, max_num_images=30)
+    history = History()
+
     for epoch in range(opt.epoch_count, opt.niter + opt.niter_decay + 1):
+
         ''' train '''
         trainer.netG.train()
-        history = History(length=len(train_loader))
-        pbar = tqdm.tqdm(train_loader)
-        pbar.set_description(f'Epoch#{epoch}')
+        pbar = tqdm.tqdm(train_loader, desc=f'Epoch#{epoch}')
         for i, data in enumerate(pbar, 1):
             loss_terms, images = trainer.optimize_parameters(prepare_input(data), update_g=i % 5 == 0, update_d=True)
-            pbar.set_postfix(history.add(loss_terms, {}))
+            pbar.set_postfix(history.add(loss_terms))
             logger.image(images, epoch=epoch, prefix='train_')
-        logger.scalar(history.metric(), epoch)
 
         ''' validate '''
         trainer.netG.eval()
-        history = History(length=len(val_loader))
         for data in val_loader:
             loss_terms, images = trainer.optimize_parameters(prepare_input(data), update_g=False, update_d=False)
-            history.add(loss_terms, {}, log_suffix='_val')
+            history.add(loss_terms, log_suffix='_val')
             logger.image(images, epoch=epoch, prefix='val_')
-        logger.scalar(history.metric(), epoch)
 
+        logger.scalar(history.metric(), epoch)
         if epoch % opt.save_epoch_freq == 0:
             print(f'saving the model at the end of epoch {epoch}')
             trainer.save('latest')
             trainer.save(epoch)
         trainer.update_learning_rate()
+
+        # clean the state of extensions
+        history.clear()
+        logger.clear()
 
 
 if __name__ == '__main__':

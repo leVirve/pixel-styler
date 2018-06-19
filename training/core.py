@@ -197,3 +197,99 @@ def cyclegan_estimator(models, args):
         update_fn=partial(_closure),
         inference_fn=partial(_closure, volatile=True),
         epoch_fn=_epoch_ending_fn)
+
+
+def pix2pixhd_estimator(models, args):
+
+    def _closure(models, data, volatile=False):
+        ga, gb, da, db = models
+        AtoB = args.which_direction == 'AtoB'
+        real_a = to_var(data['A' if AtoB else 'B'], volatile=volatile)
+        real_b = to_var(data['B' if AtoB else 'A'], volatile=volatile)
+
+        if args.identity > 0:
+            idt_a = ga(real_b)
+            loss_idt_a = F.l1_loss(idt_a, real_b) * args.lambda_B * args.identity
+            idt_b = gb(real_a)
+            loss_idt_b = F.l1_loss(idt_b, real_a) * args.lambda_A * args.identity
+        else:
+            loss_idt_a = loss_idt_b = 0
+
+        fake_a = gb(real_b)
+        fake_b = ga(real_a)
+        loss_g_a = gan_loss(da(fake_b), 1)
+        loss_g_b = gan_loss(db(fake_a), 1)
+
+        # forward cycle loss
+        rec_a = gb(fake_b)
+        loss_cycle_a = F.l1_loss(rec_a, real_a) * args.lambda_A
+
+        # backward cycle loss
+        rec_b = ga(fake_a)
+        loss_cycle_b = F.l1_loss(rec_b, real_b) * args.lambda_B
+
+        yield {
+            'loss/g': loss_g_a + loss_g_b + loss_cycle_a + loss_cycle_b + loss_idt_a + loss_idt_b,
+            'loss/g_a': loss_g_a,
+            'loss/g_b': loss_g_b,
+            'loss/cycle_a': loss_cycle_a,
+            'loss/cycle_b': loss_cycle_b,
+        }, (optim_g, 'loss/g')
+
+        def _d(d, real, fake):
+            loss_d_real = gan_loss(d(real), 1)
+            loss_d_fake = gan_loss(d(fake.detach()), 0)
+            return (loss_d_real + loss_d_fake) * 0.5
+
+        loss_d_a = _d(da, real_b, b_pool.query(fake_b.data))
+        yield {'loss/d_a': loss_d_a}, (optim_da, 'loss/d_a')
+
+        loss_d_b = _d(db, real_a, a_pool.query(fake_a.data))
+        yield {'loss/d_b': loss_d_b}, (optim_db, 'loss/d_b')
+
+        viz_results = {
+            'realA': real_a.data,
+            'realB': real_b.data,
+            'fakeA': fake_a.data,
+            'fakeB': fake_b.data,
+            'recA': rec_a.data,
+            'recB': rec_b.data}
+        if args.identity > 0:
+            viz_results['idtA'] = idt_a
+            viz_results['idtB'] = idt_b
+        tensorboard.image(
+            viz_results,
+            epoch=estimator.state['epoch'], prefix='val_' if volatile else 'train_')
+        yield
+
+    def _epoch_ending_fn(epoch):
+        tensorboard.scalar(estimator.history.metric(), epoch)
+        checkpoint._save(f'G_A-{epoch}.pth', model_ga, None, epoch)
+        checkpoint._save(f'G_B-{epoch}.pth', model_gb, None, epoch)
+        checkpoint._save(f'D_A-{epoch}.pth', model_d[0], None, epoch)
+        checkpoint._save(f'D_B-{epoch}.pth', model_d[1], None, epoch)
+        estimator.adjust_learning_rate(('loss/loss_g_val', 'loss/loss_d_a_val', 'loss/loss_d_b_val'))
+
+    a_pool = ImagePool(args.pool_size)
+    b_pool = ImagePool(args.pool_size)
+
+    log = logging.getLogger(f'pixsty.{args.name}')
+
+    gan_loss = L.adversarial_ce_loss if args.no_lsgan else L.adversarial_ls_loss
+    checkpoint = onegan.extension.GANCheckpoint(name=args.name, save_epochs=5)
+    tensorboard = onegan.extension.TensorBoardLogger(name=args.name, max_num_images=30)
+
+    (model_ga, model_gb), model_d = models
+    model_g = itertools.chain(model_ga.parameters(), model_gb.parameters())
+    optim_g, optim_da, optim_db = create_optimizer([model_g, *model_d], args)
+    schedulers = create_scheduler([optim_g, optim_da, optim_db], args)
+
+    log.info('Build CycleGAN training esimator')
+    estimator = onegan.estimator.OneGANEstimator(
+        [model_ga, model_gb, *model_d], lr_scheduler=schedulers, name=args.name)
+
+    return partial(
+        estimator.dummy_run,
+        update_fn=partial(_closure),
+        inference_fn=partial(_closure, volatile=True),
+        epoch_fn=_epoch_ending_fn)
