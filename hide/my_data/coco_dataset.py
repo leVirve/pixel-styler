@@ -8,6 +8,7 @@ import torchvision.transforms as T
 import torchvision.transforms.functional as F
 from PIL import Image
 
+from data.base_dataset import BaseDataset
 from pycocotools.coco import COCO
 
 

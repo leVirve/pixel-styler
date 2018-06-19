@@ -3,12 +3,16 @@ import torch.utils.data
 from data.base_data_loader import BaseDataLoader
 from data.base_dataset import BaseDataset
 
-def find_dataset_using_name(dataset_name):
+def find_dataset_using_name(dataset_name, fallback_module='my_data.'):
     # Given the option --dataset [datasetname],
-    # the file "datasets/datasetname_dataset.py"
-    # will be imported. 
+    # the file "data/datasetname_dataset.py"
+    # will be imported.
     dataset_filename = "data." + dataset_name + "_dataset"
-    datasetlib = importlib.import_module(dataset_filename)
+    try:
+        datasetlib = importlib.import_module(dataset_filename)
+    except ModuleNotFoundError:
+        dataset_filename = dataset_filename.replace('data.', fallback_module)
+        datasetlib = importlib.import_module(dataset_filename)
 
     # In the file, the class called DatasetNameDataset() will
     # be instantiated. It has to be a subclass of BaseDataset,
@@ -19,7 +23,7 @@ def find_dataset_using_name(dataset_name):
         if name.lower() == target_dataset_name.lower() \
            and issubclass(cls, BaseDataset):
             dataset = cls
-            
+
     if dataset is None:
         print("In %s.py, there should be a subclass of BaseDataset with class name that matches %s in lowercase." % (dataset_filename, target_dataset_name))
         exit(0)
@@ -27,7 +31,7 @@ def find_dataset_using_name(dataset_name):
     return dataset
 
 
-def get_option_setter(dataset_name):    
+def get_option_setter(dataset_name):
     dataset_class = find_dataset_using_name(dataset_name)
     return dataset_class.modify_commandline_options
 
@@ -52,14 +56,23 @@ class CustomDatasetDataLoader(BaseDataLoader):
     def name(self):
         return 'CustomDatasetDataLoader'
 
-    def initialize(self, opt):
+    def initialize(self, opt, phase='val'):
         BaseDataLoader.initialize(self, opt)
-        self.dataset = create_dataset(opt)
+        self.dataset = self._create_dataset_wrapper(opt, phase)
         self.dataloader = torch.utils.data.DataLoader(
             self.dataset,
             batch_size=opt.batchSize,
             shuffle=not opt.serial_batches,
             num_workers=int(opt.nThreads))
+
+    def _create_dataset_wrapper(self, opt, phase):
+        if phase == 'val':
+            opt.isTrain = False
+            opt.serial_batches = True
+            val_dataset = create_dataset(opt)
+            opt.isTrain = True
+            return val_dataset
+        return create_dataset(opt)
 
     def load_data(self):
         return self

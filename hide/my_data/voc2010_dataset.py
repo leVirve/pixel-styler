@@ -3,18 +3,18 @@ import pickle
 
 import torch
 import numpy as np
+import skimage.io as io
 import torchvision.transforms as T
 import torchvision.transforms.functional as F
 from PIL import Image
 
+from data.base_dataset import BaseDataset
 from detail import Detail
-import skimage.io as io
 
 
-class VOC2010Loader:
-    name = 'VOC2010Loader'
+class VOC2010Dataset(BaseDataset):
 
-    def __init__(self, opt):
+    def initialize(self, opt):
         self.target_size = (opt.fineSize, opt.fineSize)
 
         self.phase = 'train' if opt.isTrain else 'val'
@@ -87,14 +87,6 @@ class VOC2010Loader:
             'binseg': torch.from_numpy(np.array(F.resize(F.to_pil_image(binseg), self.target_size, interpolation=Image.NEAREST))).unsqueeze(0).float(),
         }
 
+    def name(self):
+        return 'VOC2010Dataset'
 
-if __name__ == '__main__':
-    from easydict import EasyDict
-    opt = EasyDict()
-    opt.isTrain = True
-    opt.fineSize = 128
-    opt.dataroot = '/archive/pascal_voc/'
-    opt.subjects = ['horse']
-    dataloader = VOC2010Loader(opt)
-
-    e = dataloader.load_example(60)
